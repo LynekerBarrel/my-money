@@ -1,8 +1,10 @@
 const express = require('express')
+const sequelize = require('sequelize')
 const router = express.Router()
 const billingCycles = require('./billingCycle')
 const Credit = require('./Credit')
 const Debt = require('./Debt')
+
 
 router.get('/billingCycles', (req, res) => {
     billingCycles.findAll({
@@ -19,11 +21,12 @@ router.get('/billingCycles', (req, res) => {
             res.status(404).send('Registro não encontrado')
         }
     }).catch(msgErro => {
-        res.status(100).send(`Erro encontrado: ${msgErro}`)
+        res.status(500).send(`Erro encontrado: ${msgErro}`)
     })
 })
 
-router.get('/billingCycles/:id', (req, res) => {
+
+router.get('/billingCycles/:id', (req, res, next) => {
     billingCycles.findByPk(req.params.id, {
         include: [{
             model: Credit
@@ -34,13 +37,14 @@ router.get('/billingCycles/:id', (req, res) => {
         if (billingcycles != undefined) {
             res.status(200).send(billingcycles)
         } else {
-            res.status(404).send('Registro não encontrado')
+            next()
         }
     }).catch(msgErro => {
-        res.status(100).send(`Erro encontrado: ${msgErro}`)
+        res.status(500).send(`Erro encontrado: ${msgErro}`)
     })
 })
 
+//#region Create 
 router.post('/billingCycles', (req, res) => {
 
     let credit = req.body.credit
@@ -65,7 +69,7 @@ router.post('/billingCycles', (req, res) => {
             res.status(404).send('Não foi possível criar, tente novamente mais tarde.')
         }
     }).catch(msgErro => {
-        res.status(100).send(`Erro encontrado: ${msgErro}`)
+        res.status(500).send(`Erro encontrado: ${msgErro}`)
     })
 })
 
@@ -107,7 +111,9 @@ function CreateDebts(debt, bc_Id) {
     })
     return true
 }
+//#endregion
 
+//#region Update
 router.put('/billingCycles/:id', (req, res) => {
     let credit = req.body.credit
     let debt = req.body.debt
@@ -134,7 +140,7 @@ router.put('/billingCycles/:id', (req, res) => {
                 res.status(404).send('Não foi possível alterar billingCycle, tente novamente mais tarde.')
             }
         }).catch(msgErro => {
-            res.status(100).send(`Erro encontrado: ${msgErro}`)
+            res.status(500).send(`Erro encontrado: ${msgErro}`)
         })
     } else {
         res.status(404).send('Id não foi informado no body da requisição.')
@@ -165,7 +171,9 @@ function UpdateDebts(debt) {
     })
     return true
 }
+//#endregion
 
+//#region Delete
 router.delete('/billingCycles/:id', async (req, res) => {
     let id = req.params.id
     if (id != undefined) {
@@ -179,13 +187,13 @@ router.delete('/billingCycles/:id', async (req, res) => {
             }).then(() => {
                 res.status(200).send('BillingCycle deletado com sucesso!')
             }).catch(msgErro => {
-                res.status(100).send(`Erro encontrado: ${msgErro}`)
+                res.status(500).send(`Erro encontrado: ${msgErro}`)
             })
         } else {
-            res.status(100).send('Id informado não é apenas números.')
+            res.status(500).send('Id informado não é apenas números.')
         }
     } else {
-        res.status(100).send('Id não foi informado no body da requisição.')
+        res.status(500).send('Id não foi informado no body da requisição.')
     }
 })
 
@@ -210,5 +218,63 @@ function DeleteDebts(bc_Id) {
     })
     return true
 }
+//#endregion
+
+
+router.get('/billingCycles/count', (req, res) => {
+    billingCycles.findAll({
+        attributes: [[sequelize.fn('count', sequelize.col('id')), 'count']]
+    }).then(bccount => {
+        res.status(200).send(bccount)
+    }).catch(msgErro => {
+        res.status(500).send(`Erro encontrado: ${msgErro}`)
+    })
+})
+
+router.get('/billingCycles/summary', async (req, res) => {
+    let CreditSum = 0
+    let DebtSum = 0
+    try {
+        CreditSum = await Credit.findAll({
+            attributes: [[sequelize.fn('sum', sequelize.col('value')), 'sum']],
+            raw: true
+        }).then(sum => {
+            return sum[0].sum
+        })
+
+        DebtSum = await Debt.findAll({
+            attributes: [[sequelize.fn('sum', sequelize.col('value')), 'sum']],
+            raw: true
+        }).then(sum => {
+            return sum[0].sum
+        })
+
+    } catch (err) {
+        console.log('There was an error!', err);
+    }
+
+    res.status(200).json({ CreditSum, DebtSum: DebtSum })
+})
+function SumCredits() {
+    Credit.findAll({
+        attributes: [[sequelize.fn('sum', sequelize.col('value')), 'sum']]
+    }).then(sum => {
+        return 10
+    }).catch(msgErro => {
+        return 0
+    })
+}
+
+function SumDebts() {
+    Debt.findAll({
+        attributes: [[sequelize.fn('sum', sequelize.col('value')), 'sum']]
+    }).then(sum => {
+        return sum
+    }).catch(msgErro => {
+        return 0
+    })
+}
+
+
 
 module.exports = router
