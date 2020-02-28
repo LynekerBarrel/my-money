@@ -4,6 +4,10 @@ const Credit = require('./Credit')
 const Debt = require('./Debt')
 
 const billingCycle = connection.define('billingcycle', {
+    id: {
+        type: sequelize.INTEGER,
+        primaryKey: true
+    },
     name: {
         type: sequelize.STRING,
         allowNull: false
@@ -11,11 +15,28 @@ const billingCycle = connection.define('billingcycle', {
     month: {
         type: sequelize.INTEGER,
         validate: {
-            len: [1, 12]
+            min: {
+                args: [1],
+                msg: 'O valor do mês deve ser maior ou igual a 1 (Janeiro).'
+            },
+            max: {
+                args: [12],
+                msg: 'O valor do mês deve ser menor ou igual a 12 (Dezembro).'
+            }
         }
     },
     year: {
-        type: sequelize.INTEGER
+        type: sequelize.INTEGER,
+        validate: {
+            min: {
+                args: [1970],
+                msg: 'O ano deve ser maior ou igual a 1970.'
+            },
+            max: {
+                args: [2100],
+                msg: 'O ano deve ser menor ou igual a 2100.'
+            }
+        }
     }
 })
 

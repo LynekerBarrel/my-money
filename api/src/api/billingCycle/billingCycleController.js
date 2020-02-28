@@ -50,27 +50,59 @@ router.post('/billingCycles', (req, res) => {
     let credit = req.body.credit
     let debt = req.body.debt
 
-    billingCycles.create({
+    var bc = billingCycles.build({
         name: req.body.name,
         month: req.body.month,
         year: req.body.year,
         createdAt: Date.now(),
         updatedAt: Date.now()
-    }).then(billingcycles => {
-        if (billingcycles != undefined) {
-            if (credit != undefined) {
-                CreateCredits(credit, billingcycles.id)
+    })
+
+    bc.validate().then(() => {
+        bc.save().then(billingcycles => {
+            if (billingcycles != undefined) {
+                if (credit != undefined) {
+                    CreateCredits(credit, billingcycles.id)
+                }
+                if (debt != undefined) {
+                    CreateDebts(debt, billingcycles.id)
+                }
+                res.status(200).send(billingcycles)
+            } else {
+                res.status(404).send('Não foi possível criar, tente novamente mais tarde.')
             }
-            if (debt != undefined) {
-                CreateDebts(debt, billingcycles.id)
-            }
-            res.status(200).send(billingcycles)
-        } else {
-            res.status(404).send('Não foi possível criar, tente novamente mais tarde.')
-        }
+        })
+    }).catch(sequelize.ValidationError, (msgErroValidation) => {
+        res.status(500).send(`Erro encontrado: ${msgErroValidation}`)
     }).catch(msgErro => {
         res.status(500).send(`Erro encontrado: ${msgErro}`)
     })
+
+
+    // billingCycles.create({
+    //     name: req.body.name,
+    //     month: req.body.month,
+    //     year: req.body.year,
+    //     createdAt: Date.now(),
+    //     updatedAt: Date.now()
+    // }).then(billingcycles => {
+    //     if (billingcycles != undefined) {
+    //         if (credit != undefined) {
+    //             CreateCredits(credit, billingcycles.id)
+    //         }
+    //         if (debt != undefined) {
+    //             CreateDebts(debt, billingcycles.id)
+    //         }
+    //         res.status(200).send(billingcycles)
+    //     } else {
+    //         res.status(404).send('Não foi possível criar, tente novamente mais tarde.')
+    //     }
+    // }).catch(sequelize.ValidationError, (msgErroValidation) => {
+    //     res.status(500).send(`Erro encontrado: ${msgErro}`)
+    // }).catch(msgErro => {
+    //     res.status(500).send(`Erro encontrado: ${msgErro}`)
+    // })
+
 })
 
 function CreateCredits(credit, bc_Id) {
@@ -114,37 +146,84 @@ function CreateDebts(debt, bc_Id) {
 //#endregion
 
 //#region Update
-router.put('/billingCycles/:id', (req, res) => {
+router.put('/billingCycles/:id', async (req, res) => {
+
     let credit = req.body.credit
     let debt = req.body.debt
     if (req.params.id != undefined) {
-        billingCycles.update({
-            name: req.body.name,
-            month: req.body.month,
-            year: req.body.year,
-            updatedAt: Date.now()
-        }, {
-            where: {
-                id: req.params.id
-            }
-        }).then(billingcycles => {
-            if (billingcycles != undefined) {
-                if (credit != undefined) {
-                    UpdateCredits(credit)
+
+        try {
+            var bc = billingCycles.build({
+                id: req.params.id,
+                name: req.body.name,
+                month: req.body.month,
+                year: req.body.year,
+                updatedAt: Date.now()
+            })
+            await bc.validate()
+
+            billingCycles.update({
+                name: req.body.name,
+                month: req.body.month,
+                year: req.body.year,
+                updatedAt: Date.now()
+            }, {
+                where: {
+                    id: req.params.id
                 }
-                if (debt != undefined) {
-                    UpdateDebts(debt)
+            }).then(billingcycles => {
+                if (billingcycles != undefined) {
+                    if (credit != undefined) {
+                        UpdateCredits(credit)
+                    }
+                    if (debt != undefined) {
+                        UpdateDebts(debt)
+                    }
+                    res.status(200).send('BillingCycle alterado com sucesso!')
+                } else {
+                    res.status(404).send('Não foi possível alterar billingCycle, tente novamente mais tarde.')
                 }
-                res.status(200).send('BillingCycle alterado com sucesso!')
-            } else {
-                res.status(404).send('Não foi possível alterar billingCycle, tente novamente mais tarde.')
-            }
-        }).catch(msgErro => {
-            res.status(500).send(`Erro encontrado: ${msgErro}`)
-        })
+            }).catch(msgErro => {
+                res.status(500).send(`Erro encontrado: ${msgErro}`)
+            })
+        } catch (erro) {
+            res.status(500).send(`Erro encontrado: ${erro}`)
+        }
     } else {
         res.status(404).send('Id não foi informado no body da requisição.')
     }
+
+
+    // let credit = req.body.credit
+    // let debt = req.body.debt
+    // if (req.params.id != undefined) {
+    //     billingCycles.update({
+    //         name: req.body.name,
+    //         month: req.body.month,
+    //         year: req.body.year,
+    //         updatedAt: Date.now()
+    //     }, {
+    //         where: {
+    //             id: req.params.id
+    //         }
+    //     }).then(billingcycles => {
+    //         if (billingcycles != undefined) {
+    //             if (credit != undefined) {
+    //                 UpdateCredits(credit)
+    //             }
+    //             if (debt != undefined) {
+    //                 UpdateDebts(debt)
+    //             }
+    //             res.status(200).send('BillingCycle alterado com sucesso!')
+    //         } else {
+    //             res.status(404).send('Não foi possível alterar billingCycle, tente novamente mais tarde.')
+    //         }
+    //     }).catch(msgErro => {
+    //         res.status(500).send(`Erro encontrado: ${msgErro}`)
+    //     })
+    // } else {
+    //     res.status(404).send('Id não foi informado no body da requisição.')
+    // }
 })
 
 function UpdateCredits(credit) {
