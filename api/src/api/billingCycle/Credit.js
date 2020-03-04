@@ -17,7 +17,7 @@ const Credit = connection.define('credit', {
             }
         }
     },
-    bc_Id:{
+    bc_Id: {
         type: sequelize.INTEGER,
         allowNull: false
     }

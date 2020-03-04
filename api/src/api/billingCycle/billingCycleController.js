@@ -45,39 +45,41 @@ router.get('/billingCycles/:id', (req, res, next) => {
 })
 
 //#region Create 
-router.post('/billingCycles', (req, res) => {
+router.post('/billingCycles', async (req, res) => {
 
     let credit = req.body.credit
     let debt = req.body.debt
-
-    var bc = billingCycles.build({
-        name: req.body.name,
-        month: req.body.month,
-        year: req.body.year,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-    })
-
-    bc.validate().then(() => {
-        bc.save().then(billingcycles => {
-            if (billingcycles != undefined) {
-                if (credit != undefined) {
-                    CreateCredits(credit, billingcycles.id)
-                }
-                if (debt != undefined) {
-                    CreateDebts(debt, billingcycles.id)
-                }
-                res.status(200).send(billingcycles)
-            } else {
-                res.status(404).send('Não foi possível criar, tente novamente mais tarde.')
-            }
+    try {
+        var bc = billingCycles.build({
+            name: req.body.name,
+            month: req.body.month,
+            year: req.body.year,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
         })
-    }).catch(sequelize.ValidationError, (msgErroValidation) => {
-        res.status(500).send(`Erro encontrado: ${msgErroValidation}`)
-    }).catch(msgErro => {
-        res.status(500).send(`Erro encontrado: ${msgErro}`)
-    })
 
+        await bc.validate()
+        const billingcycles = await billingCycles.create({
+            name: req.body.name,
+            month: req.body.month,
+            year: req.body.year,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        })
+        if (billingcycles != undefined) {
+            if (credit != undefined) {
+                CreateCredits(credit, billingcycles.id)
+            }
+            if (debt != undefined) {
+                CreateDebts(debt, billingcycles.id)
+            }
+            res.status(200).send(billingcycles)
+        } else {
+            res.status(404).send('Não foi possível criar, tente novamente mais tarde.')
+        }
+    } catch (msgErro) {
+        res.status(500).send(`Erro encontrado: ${msgErro}`)
+    }
 
     // billingCycles.create({
     //     name: req.body.name,
@@ -105,44 +107,44 @@ router.post('/billingCycles', (req, res) => {
 
 })
 
-function CreateCredits(credit, bc_Id) {
-    let newCredit = []
-    credit.forEach(c => {
-        let creditModified = {
-            name: c.name,
-            value: c.value,
-            bc_Id
-        }
-        newCredit.push(creditModified)
-    })
-    Credit.bulkCreate(newCredit).then(credit => {
-        if (credit == undefined) {
-            return false
-            // res.status(200).send('BillingCycle criada porém credit não foi.')
-        }
-    })
-    return true
+const CreateCredits = (credit, bc_Id) => {
+    var promises = []
+    try {
+
+        credit.forEach(c => {
+            let { name, value } = c
+            promises.push(new Promise((resolve, reject) => { Credit.create({ name, value, bc_Id }) }))
+        })
+
+        Promise.all(promises).then(() => {
+            res.status(200).send('Créditos criados com sucesso!')
+        }).catch(msgErro => {
+            res.status(500).send(`Erro ocorrido: ${msgErro}`)
+        })
+    } catch (msgErro) {
+        res.status(500).send(`Erro encontrado: ${msgErro}`)
+    }
 }
 
-function CreateDebts(debt, bc_Id) {
-    let newDebt = []
-    debt.forEach(d => {
-        let debtModified = {
-            name: d.name,
-            value: d.value,
-            status: d.status,
-            bc_Id
-        }
-        newDebt.push(debtModified)
-    })
-    Debt.bulkCreate(newDebt).then(debt => {
-        if (debt == undefined) {
-            return false
-            // res.status(200).send('BillingCycle criada porém debt não foi.')
-        }
-    })
-    return true
+const CreateDebts = (debt, bc_Id) => {
+    var promises = []
+    try {
+
+        debt.forEach(d => {
+            let { name, value, status } = d
+            promises.push(new Promise((resolve, reject) => { Debt.create({ name, value, status, bc_Id }) }))
+        })
+
+        Promise.all(promises).then(() => {
+            res.status(200).send('Débitos criados com sucesso!')
+        }).catch(msgErro => {
+            res.status(500).send(`Erro ocorrido: ${msgErro}`)
+        })
+    } catch (msgErro) {
+        res.status(500).send(`Erro encontrado: ${msgErro}`)
+    }
 }
+
 //#endregion
 
 //#region Update
@@ -161,8 +163,7 @@ router.put('/billingCycles/:id', async (req, res) => {
                 updatedAt: Date.now()
             })
             await bc.validate()
-
-            billingCycles.update({
+            const bcUpdated = await billingCycles.update({
                 name: req.body.name,
                 month: req.body.month,
                 year: req.body.year,
@@ -171,23 +172,23 @@ router.put('/billingCycles/:id', async (req, res) => {
                 where: {
                     id: req.params.id
                 }
-            }).then(billingcycles => {
-                if (billingcycles != undefined) {
-                    if (credit != undefined) {
-                        UpdateCredits(credit)
-                    }
-                    if (debt != undefined) {
-                        UpdateDebts(debt)
-                    }
-                    res.status(200).send('BillingCycle alterado com sucesso!')
-                } else {
-                    res.status(404).send('Não foi possível alterar billingCycle, tente novamente mais tarde.')
-                }
-            }).catch(msgErro => {
-                res.status(500).send(`Erro encontrado: ${msgErro}`)
             })
-        } catch (erro) {
-            res.status(500).send(`Erro encontrado: ${erro}`)
+
+            if (bcUpdated != undefined) {
+
+                if (credit != undefined) {
+                    UpdateCredits(credit)
+                }
+                if (debt != undefined) {
+                    UpdateDebts(debt)
+                }
+                res.status(200).send('BillingCycle alterado com sucesso!')
+            } else {
+                res.status(404).send('Não foi possível alterar billingCycle, tente novamente mais tarde.')
+            }
+
+        } catch (msgErro) {
+            res.status(500).send(`Erro encontado: ${msgErro}`)
         }
     } else {
         res.status(404).send('Id não foi informado no body da requisição.')
@@ -226,29 +227,30 @@ router.put('/billingCycles/:id', async (req, res) => {
     // }
 })
 
-function UpdateCredits(credit) {
-    credit.forEach(c => {
-        Credit.update(c, { where: { id: c.id } }).then(credit => {
-            if (credit == undefined) {
-                return false
-                // res.status(200).send('BillingCycle criada porém credit não foi.')
-            }
+const UpdateCredits = (credit) => {
 
-        })
+    var promises = [];
+    credit.forEach(c => {
+        let { id } = c
+        promises.push(new Promise((resolve, reject) => { Credit.update(c, { where: { id } }) }))
     })
-    return true
+    Promise.all(promises).then(() => {
+        res.status(200).send('Credito criado com sucesso!')
+    }, (msgErro) => {
+        res.status(500).send(`Erro encontrado: ${msgErro}`)
+    })
 }
 
-function UpdateDebts(debt) {
+const UpdateDebts = (debt) => {
+    var promises = [];
     debt.forEach(d => {
-        Debt.update(d, { where: { id: d.id } }).then(debt => {
-            if (debt == undefined) {
-                return false
-                // res.status(200).send('BillingCycle criada porém debt não foi.')
-            }
-        })
+        promises.push(new Promise((resolve, reject) => { Debt.update(d, { where: { id: d.id } }) }))
     })
-    return true
+    Promise.all(promises).then(() => {
+        res.status(200).send('Débitos alterados com sucesso!')
+    }, (msgErro) => {
+        res.status(500).send(`Erro encontrado: ${msgErro}`)
+    })
 }
 //#endregion
 

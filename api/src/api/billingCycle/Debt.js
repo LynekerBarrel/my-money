@@ -13,7 +13,13 @@ const Debt = connection.define('debt', {
     },
     status: {
         type: sequelize.STRING,
-        allowNull: true
+        allowNull: true,
+        validate:{
+            isIn:{
+                args:[['PAGO', 'PENDENTE','AGENDADO']],
+                msg: 'O valor do status deve ser um desses: PAGO | PENDENTE | AGENDADO'
+            }
+        }
     },
     bc_Id:{
         type: sequelize.INTEGER,

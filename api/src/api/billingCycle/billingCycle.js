@@ -6,7 +6,9 @@ const Debt = require('./Debt')
 const billingCycle = connection.define('billingcycle', {
     id: {
         type: sequelize.INTEGER,
-        primaryKey: true
+        allowNull: false,
+        primaryKey: true,
+        autoIncrement: true,
     },
     name: {
         type: sequelize.STRING,
