@@ -16,7 +16,7 @@ router.get('/billingCycles', (req, res) => {
         order: [['id', 'DESC']]
     }).then(billingcycles => {
         if (billingcycles != undefined) {
-            res.status(200).send(billingcycles)
+            res.status(200).send(Pagination(billingcycles, req.query.page, req.query.limit))
         } else {
             res.status(404).send('Registro não encontrado')
         }
@@ -24,6 +24,12 @@ router.get('/billingCycles', (req, res) => {
         res.status(500).send(`Erro encontrado: ${msgErro}`)
     })
 })
+
+const Pagination = (data, page, limit) => {
+    const startIndex = (page - 1) * limit
+    const endIndex = page * limit
+    return data.slice(startIndex, endIndex)
+}
 
 
 router.get('/billingCycles/:id', (req, res, next) => {
@@ -232,7 +238,9 @@ const UpdateCredits = (credit) => {
     var promises = [];
     credit.forEach(c => {
         let { id } = c
-        promises.push(new Promise((resolve, reject) => { Credit.update(c, { where: { id } }) }))
+        if (id != undefined) {
+            promises.push(new Promise((resolve, reject) => { Credit.update(c, { where: { id } }) }))
+        }
     })
     Promise.all(promises).then(() => {
         res.status(200).send('Credito criado com sucesso!')
@@ -244,7 +252,9 @@ const UpdateCredits = (credit) => {
 const UpdateDebts = (debt) => {
     var promises = [];
     debt.forEach(d => {
-        promises.push(new Promise((resolve, reject) => { Debt.update(d, { where: { id: d.id } }) }))
+        if (d.id != undefined) {
+            promises.push(new Promise((resolve, reject) => { Debt.update(d, { where: { id: d.id } }) }))
+        }
     })
     Promise.all(promises).then(() => {
         res.status(200).send('Débitos alterados com sucesso!')
