@@ -16,7 +16,11 @@ router.get('/billingCycles', (req, res) => {
         order: [['id', 'DESC']]
     }).then(billingcycles => {
         if (billingcycles != undefined) {
-            res.status(200).send(Pagination(billingcycles, req.query.page, req.query.limit))
+            if (req.query.page != undefined && req.query.limit != undefined) {
+                res.status(200).send(Pagination(billingcycles, req.query.page, req.query.limit))
+            } else {
+                res.status(200).send(billingcycles)
+            }
         } else {
             res.status(404).send('Registro não encontrado')
         }
@@ -53,8 +57,8 @@ router.get('/billingCycles/:id', (req, res, next) => {
 //#region Create 
 router.post('/billingCycles', async (req, res) => {
 
-    let credit = req.body.credit
-    let debt = req.body.debt
+    let credit = req.body.credits
+    let debt = req.body.debts
     try {
         var bc = billingCycles.build({
             name: req.body.name,
@@ -156,13 +160,14 @@ const CreateDebts = (debt, bc_Id) => {
 //#region Update
 router.put('/billingCycles/:id', async (req, res) => {
 
-    let credit = req.body.credit
-    let debt = req.body.debt
-    if (req.params.id != undefined) {
+    let credit = req.body.credits
+    let debt = req.body.debts
+    let bc_Id = req.params.id
+    if (bc_Id != undefined) {
 
         try {
             var bc = billingCycles.build({
-                id: req.params.id,
+                id: bc_Id,
                 name: req.body.name,
                 month: req.body.month,
                 year: req.body.year,
@@ -176,17 +181,19 @@ router.put('/billingCycles/:id', async (req, res) => {
                 updatedAt: Date.now()
             }, {
                 where: {
-                    id: req.params.id
+                    id: bc_Id
                 }
             })
 
             if (bcUpdated != undefined) {
 
                 if (credit != undefined) {
-                    UpdateCredits(credit)
+                    await DeleteCredits(bc_Id)
+                    CreateCredits(credit, bc_Id)
                 }
                 if (debt != undefined) {
-                    UpdateDebts(debt)
+                    await DeleteDebts(bc_Id)
+                    CreateDebts(debt, bc_Id)
                 }
                 res.status(200).send('BillingCycle alterado com sucesso!')
             } else {
@@ -201,8 +208,8 @@ router.put('/billingCycles/:id', async (req, res) => {
     }
 
 
-    // let credit = req.body.credit
-    // let debt = req.body.debt
+    // let credit = req.body.credits
+    // let debt = req.body.debts
     // if (req.params.id != undefined) {
     //     billingCycles.update({
     //         name: req.body.name,
@@ -233,35 +240,35 @@ router.put('/billingCycles/:id', async (req, res) => {
     // }
 })
 
-const UpdateCredits = (credit) => {
+// const UpdateCredits = (credit) => {
 
-    var promises = [];
-    credit.forEach(c => {
-        let { id } = c
-        if (id != undefined) {
-            promises.push(new Promise((resolve, reject) => { Credit.update(c, { where: { id } }) }))
-        }
-    })
-    Promise.all(promises).then(() => {
-        res.status(200).send('Credito criado com sucesso!')
-    }, (msgErro) => {
-        res.status(500).send(`Erro encontrado: ${msgErro}`)
-    })
-}
+//     var promises = [];
+//     credit.forEach(c => {
+//         let { id } = c
+//         if (id != undefined) {
+//             promises.push(new Promise((resolve, reject) => { Credit.update(c, { where: { id } }) }))
+//         }
+//     })
+//     Promise.all(promises).then(() => {
+//         res.status(200).send('Credito criado com sucesso!')
+//     }, (msgErro) => {
+//         res.status(500).send(`Erro encontrado: ${msgErro}`)
+//     })
+// }
 
-const UpdateDebts = (debt) => {
-    var promises = [];
-    debt.forEach(d => {
-        if (d.id != undefined) {
-            promises.push(new Promise((resolve, reject) => { Debt.update(d, { where: { id: d.id } }) }))
-        }
-    })
-    Promise.all(promises).then(() => {
-        res.status(200).send('Débitos alterados com sucesso!')
-    }, (msgErro) => {
-        res.status(500).send(`Erro encontrado: ${msgErro}`)
-    })
-}
+// const UpdateDebts = (debt) => {
+//     var promises = [];
+//     debt.forEach(d => {
+//         if (d.id != undefined) {
+//             promises.push(new Promise((resolve, reject) => { Debt.update(d, { where: { id: d.id } }) }))
+//         }
+//     })
+//     Promise.all(promises).then(() => {
+//         res.status(200).send('Débitos alterados com sucesso!')
+//     }, (msgErro) => {
+//         res.status(500).send(`Erro encontrado: ${msgErro}`)
+//     })
+// }
 //#endregion
 
 //#region Delete
