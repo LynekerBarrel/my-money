@@ -1,13 +1,13 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 export default props => (
     <li>
-        {/* <a href={props.path}>
+        <a href={props.path}>
             <i className={`fa fa-${props.icon}`}></i> <span>{props.label}</span>
-        </a> */}
-        <Link to={props.path} >
+        </a>
+        {/* <Link to={props.path} >
             <i className={`fa fa-${props.icon}`}></i> <span>{props.label}</span>
-        </Link>
+        </Link> */}
     </li>
 )

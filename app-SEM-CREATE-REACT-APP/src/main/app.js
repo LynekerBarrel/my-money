@@ -1,5 +1,4 @@
 import React from 'react'
-import { HashRouter } from 'react-router-dom'
 import Header from '../common/template/header'
 import SideBar from '../common/template/sidebar'
 import Footer from '../common/template/footer'
@@ -7,13 +6,14 @@ import Routes from './routes'
 import Notification from '../common/notification/notification'
 
 export default props => (
-    <HashRouter>
-        <div className='wrapper'>
-            <Header />
-            <SideBar />
+    <div className='wrapper'>
+        <Header />
+        <SideBar />
+        <div className='content-wrapper'>
             <Routes />
-            <Footer />
-            <Notification />
+            {/* {props.children} */}
         </div>
-    </HashRouter>
+        <Footer />
+        <Notification />
+    </div>
 )
