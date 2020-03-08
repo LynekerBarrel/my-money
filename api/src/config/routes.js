@@ -20,7 +20,7 @@ module.exports = function (server) {
     protectedApi.use(auth)
 
     const BillingCycles = require('../api/billingCycle/billingCycleController')
-    protectedApi.use('/api', BillingCycles)
+    protectedApi.use('', BillingCycles)
 
 
     //Rotas publicas
